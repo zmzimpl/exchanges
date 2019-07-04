@@ -193,6 +193,7 @@ module.exports = {
     'object-curly-spacing': [2, 'always', {
       objectsInObjects: false
     }],
-    'array-bracket-spacing': [2, 'never']
+    'array-bracket-spacing': [2, 'never'],
+    'vue/no-parsing-error': [2, { 'x-invalid-end-tag': false }]   // 关闭对iview end-tag 检查
   }
 }
