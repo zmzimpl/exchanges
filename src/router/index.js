@@ -54,7 +54,19 @@ export const constantRoutes = [
       meta: { title: '账户', icon: 'user' }
     }]
   },
-
+  {
+    path: '/auto',
+    component: Layout,
+    redirect: '/auto/moving',
+    children: [
+      {
+        path: 'moving',
+        name: 'moving',
+        component: () => import('@/views/moving/index'),
+        meta: { title: '搬砖', icon: 'example' }
+      }
+    ]
+  },
   {
     path: '/market',
     component: Layout,
@@ -83,12 +95,12 @@ export const constantRoutes = [
   },
 
   {
-    path: '/quantifying',
+    path: '/auto',
     component: Layout,
-    redirect: '/quantifying/transactions',
+    redirect: '/auto/quantifying',
     children: [
       {
-        path: '/quantifying/transactions',
+        path: '/auto/quantifying',
         component: () => import('@/views/quantifying/index'),
         meta: { title: '量化', icon: 'nested' }
       }
