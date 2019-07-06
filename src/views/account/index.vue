@@ -11,18 +11,20 @@
       <el-main>
         <el-row :gutter="20" class="account-row">
           <el-col :span="4" class="account-card">
-            <el-card class="box-card">
+            <el-card class="box-card" :body-style="{ padding: '20px', overflow: 'auto', height: 'calc(100% - 80px)' }">
               <div slot="header" class="clearfix">
                 <span>账号</span>
-                <el-button style="float: right; padding: 3px 0" type="text" @click="resetAccounts()">
+                <el-button style="float: right; padding: 3px 0; color: red" type="text" @click="resetAccounts()">
                   <i class="el-icon-delete" /> 清空
                 </el-button>
-                <el-button style="float: right; padding: 3px 0; margin-right: 4px" type="text" @click="dialogFormVisible = true">
+                <el-button style="float: right; padding: 3px 0; margin-right: 8px" type="text" @click="dialogFormVisible = true">
                   <i class="el-icon-plus" /> 添加
                 </el-button>
               </div>
-              <div v-for="item in accounts" :key="item.name" class="text item">
-                {{ item.name }}
+              <div class="text item">
+                <ul class="infinite-list">
+                  <li v-for="item in accounts" :key="item.name" class="infinite-list-item"> {{ item.name }} </li>
+                </ul>
               </div>
             </el-card>
           </el-col>
@@ -35,7 +37,7 @@
                 </el-button>
               </div>
               <div class="text item">
-                <el-card shadow="hover" style="text-align: center; cursor: pointer;" @click.native="dialogFormVisible = true">
+                <el-card v-if="!accounts.length" shadow="hover" style="text-align: center; cursor: pointer;" @click.native="dialogFormVisible = true">
                   <svg-icon icon-class="user" style="width: 128px; height: 128px;  color: #409EFF" />
                   <div style="padding: 14px;">
                     <span>还没有账号，添加一个吧</span>
@@ -89,7 +91,6 @@ export default {
       rules: {
         name: [
           { required: true, message: '请输入Api名称', trigger: 'change' }
-          // { min: 3, max: 5, message: '长度在 3 到 5 个字符', trigger: 'blur' }
         ],
         apiKey: [
           { required: true, message: '请输入apiKey', trigger: 'change' }
@@ -109,6 +110,7 @@ export default {
     this.getAccountsById(this.currentExchange)
   },
   methods: {
+    // 根据交易所ID获取已添加的账号信息
     getAccountsById(id) {
       let tempAccounts = localStorage.getItem(id)
       if (!tempAccounts) {
@@ -118,21 +120,45 @@ export default {
       }
       this.accounts = tempAccounts
     },
+    // 添加账号
     setAccounts(formName) {
       this.$refs[formName].validate((valid) => {
         if (valid) {
           this.accounts.push(this.form)
           localStorage.setItem(this.currentExchange, JSON.stringify(this.accounts))
+          this.$message({
+            type: 'success',
+            message: '添加账号成功'
+          })
           this.dialogFormVisible = false
         } else {
-          console.log('error submit!!')
+          this.$message({
+            type: 'warning',
+            message: '请完善账号信息'
+          })
           return false
         }
       })
     },
+    // 清空当前交易所已保存的账号信息
     resetAccounts() {
-      localStorage.removeItem(this.currentExchange)
-      this.accounts = []
+      this.$confirm(`是否确定清空当前交易所的所有API账号?`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
+        localStorage.removeItem(this.currentExchange)
+        this.accounts = []
+        this.$message({
+          type: 'success',
+          message: '清空成功!'
+        })
+      }).catch(() => {
+        this.$message({
+          type: 'info',
+          message: '已取消清空'
+        })
+      })
     }
   }
 }
@@ -168,5 +194,26 @@ export default {
     height: 100%;
     display: inline-grid;
   }
+}
+.infinite-list {
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  overflow: auto;
+}
+.infinite-list-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 50px;
+  background: #e8f3fe;
+  margin: 10px;
+  color: #7dbcfc;
+  cursor: pointer;
+}
+.account /deep/ .el-card__body {
+  height: calc(100% - 100px);
+  overflow: auto;
 }
 </style>
