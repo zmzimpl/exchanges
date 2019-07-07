@@ -95,12 +95,12 @@ export const constantRoutes = [
   },
 
   {
-    path: '/auto',
+    path: '/quantifying',
     component: Layout,
-    redirect: '/auto/quantifying',
+    redirect: '/quantifying/transactions',
     children: [
       {
-        path: '/auto/quantifying',
+        path: '/quantifying/transactions',
         component: () => import('@/views/quantifying/index'),
         meta: { title: '量化', icon: 'nested' }
       }
