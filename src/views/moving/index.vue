@@ -22,8 +22,8 @@
                   v-for="item in options"
                   :key="item.value"
                   :label="item.label"
-                  :value="item.value">
-                </el-option>
+                  :value="item.value"
+                />
               </el-select>
             </el-form-item>
             <el-form-item
@@ -35,7 +35,7 @@
                 required: true, message: 'API账号不能为空', trigger: 'blur'
               }"
             >
-              <el-cascader v-model="account.value" :options="apiAccounts" class="moving-select"></el-cascader>
+              <el-cascader v-model="account.value" :options="apiAccounts" class="moving-select" />
               <el-button @click.prevent="removeAccount(account)">移除</el-button>
             </el-form-item>
             <el-form-item class="moving-center">
@@ -47,9 +47,7 @@
         </el-card>
       </el-col>
       <el-col :xs="0" :xl="8" :span="8">
-        <div class="grid-content bg-purple-light">
-
-        </div>
+        <div class="grid-content bg-purple-light" />
       </el-col>
     </el-row>
     <el-row type="flex" justify="center">
@@ -58,8 +56,7 @@
           <i class="el-icon-plus" /> 新建
         </el-button>
       </el-col>
-      <el-col :span="8">
-      </el-col>
+      <el-col :span="8" />
     </el-row>
   </div>
 </template>
