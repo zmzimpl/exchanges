@@ -17,13 +17,13 @@
                 <el-button style="float: right; padding: 3px 0; color: red" type="text" @click="resetAccounts()">
                   <i class="el-icon-delete" /> 清空
                 </el-button>
-                <el-button style="float: right; padding: 3px 0; margin-right: 8px" type="text" @click="dialogFormVisible = true">
+                <el-button style="float: right; padding: 3px 0; margin-right: 8px" type="text" @click="createAccount()">
                   <i class="el-icon-plus" /> 添加
                 </el-button>
               </div>
               <div class="text item">
                 <ul class="infinite-list">
-                  <li v-for="item in accounts" :key="item.name" class="infinite-list-item"> {{ item.name }} </li>
+                  <li v-for="item in accounts" :key="item.name" @click="getAccountInfo(item)" class="infinite-list-item"> {{ item.name }} </li>
                 </ul>
               </div>
             </el-card>
@@ -31,13 +31,19 @@
           <el-col :span="20" class="account-card">
             <el-card class="box-card">
               <div slot="header" class="clearfix">
-                <span>钱包</span>
+                <span>当前帐号：{{ currentAccount ? currentAccount.name : '' }}</span>
+                <el-button style="padding: 3px 0; margin-left: 8px;" type="text" @click="editAccount(currentAccount)">
+                  <i class="el-icon-edit" />
+                </el-button>
+                <el-button style="padding: 3px 0; color: red" type="text" @click="deleteAccount()">
+                  <i class="el-icon-delete" />
+                </el-button>
                 <el-button style="float: right; padding: 3px 0; color: grey" type="text">
                   <i class="el-icon-refresh" /> 5 秒后自动刷新
                 </el-button>
               </div>
               <div class="text item">
-                <el-card v-if="!accounts.length" shadow="hover" style="text-align: center; cursor: pointer;" @click.native="dialogFormVisible = true">
+                <el-card v-if="!accounts.length" shadow="hover" style="text-align: center; cursor: pointer;" @click.native="createAccount()">
                   <svg-icon icon-class="user" style="width: 128px; height: 128px;  color: #409EFF" />
                   <div style="padding: 14px;">
                     <span>还没有账号，添加一个吧</span>
@@ -79,6 +85,7 @@ export default {
   data() {
     return {
       exchanges: exchanges,
+      currentAccount: null,
       currentExchange: 'coinex',
       accounts: [],
       dialogFormVisible: false,
@@ -108,6 +115,9 @@ export default {
   },
   created() {
     this.getAccountsById(this.currentExchange)
+    if (this.accounts.length) {
+      this.currentAccount = this.accounts[0];
+    }
   },
   methods: {
     // 根据交易所ID获取已添加的账号信息
@@ -120,16 +130,39 @@ export default {
       }
       this.accounts = tempAccounts
     },
+    createAccount() {
+      this.dialogFormVisible = true
+      this.initForm()
+      this.$refs['rulesForm'].resetFields()
+    },
+    editAccount(account) {
+      if (account) {
+        this.form = {...account}
+        this.dialogFormVisible = true
+      }
+    },
+    deleteAccount() {
+      if (this.currentAccount) {
+        this.accounts = this.accounts.filter(item => item.name !== this.currentAccount.name)
+        localStorage.setItem(this.currentExchange, JSON.stringify(this.accounts))
+        if (this.accounts.length) {
+          this.currentAccount = this.accounts[0]
+        } else {
+          this.currentAccount = null;
+        }
+      }
+    },
     // 添加账号
     setAccounts(formName) {
       this.$refs[formName].validate((valid) => {
         if (valid) {
-          this.accounts.push(this.form)
+          this.accounts = [...this.accounts, {...this.form}]
           localStorage.setItem(this.currentExchange, JSON.stringify(this.accounts))
           this.$message({
             type: 'success',
             message: '添加账号成功'
           })
+          this.currentAccount = this.form;
           this.dialogFormVisible = false
         } else {
           this.$message({
@@ -159,6 +192,16 @@ export default {
           message: '已取消清空'
         })
       })
+    },
+    initForm() {
+      this.form = {
+        name: '',
+        apiKey: '',
+        secretKey: ''
+      }
+    },
+    getAccountInfo(account) {
+      this.currentAccount = account
     }
   }
 }
