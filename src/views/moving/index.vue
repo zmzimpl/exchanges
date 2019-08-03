@@ -5,19 +5,19 @@
         <el-card v-for="(moveForm, moveIndex) in moves" :key="moveIndex" :class="{ 'moving-card' : moveIndex !== 0 }">
           <div slot="header" class="clearfix">
             <div class="moving-center">
-              <span>当前币种：</span>
+              <span>当前交易对：</span>
               <span>收益：</span>
             </div>
           </div>
           <el-form :ref="moveIndex" :model="moveForm" label-width="100px" class="moving-form">
             <el-form-item
               prop="currency"
-              label="币种"
+              label="交易对"
               :rules="[
-                { required: true, message: '请选择币种', trigger: 'change' }
+                { required: true, message: '请选择交易对', trigger: 'change' }
               ]"
             >
-              <el-select v-model="moveForm.currency" placeholder="请选择交易币种" class="moving-select">
+              <el-select v-model="moveForm.currency" placeholder="请选择交易对" class="moving-select">
                 <el-option
                   v-for="item in options"
                   :key="item.value"
