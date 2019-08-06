@@ -81,44 +81,44 @@ export const constantRoutes = [
     ]
   },
 
-  {
-    path: '/exchange',
-    component: Layout,
-    children: [
-      {
-        path: 'index',
-        name: 'Form',
-        component: () => import('@/views/exchange/index'),
-        meta: { title: '交易', icon: 'form' }
-      }
-    ]
-  },
+  // {
+  //   path: '/exchange',
+  //   component: Layout,
+  //   children: [
+  //     {
+  //       path: 'index',
+  //       name: 'Form',
+  //       component: () => import('@/views/exchange/index'),
+  //       meta: { title: '交易', icon: 'form' }
+  //     }
+  //   ]
+  // },
 
-  {
-    path: '/quantifying',
-    component: Layout,
-    redirect: '/quantifying/transactions',
-    children: [
-      {
-        path: '/quantifying/transactions',
-        component: () => import('@/views/quantifying/index'),
-        meta: { title: '量化', icon: 'nested' }
-      }
-    ]
-  },
+  // {
+  //   path: '/quantifying',
+  //   component: Layout,
+  //   redirect: '/quantifying/transactions',
+  //   children: [
+  //     {
+  //       path: '/quantifying/transactions',
+  //       component: () => import('@/views/quantifying/index'),
+  //       meta: { title: '量化', icon: 'nested' }
+  //     }
+  //   ]
+  // },
 
-  {
-    path: '/assisted',
-    component: Layout,
-    redirect: '/assisted/tools',
-    children: [
-      {
-        path: '/assisted/tools',
-        component: () => import('@/views/assisted/index'),
-        meta: { title: '辅助工具', icon: 'link' }
-      }
-    ]
-  },
+  // {
+  //   path: '/assisted',
+  //   component: Layout,
+  //   redirect: '/assisted/tools',
+  //   children: [
+  //     {
+  //       path: '/assisted/tools',
+  //       component: () => import('@/views/assisted/index'),
+  //       meta: { title: '辅助工具', icon: 'link' }
+  //     }
+  //   ]
+  // },
 
   // 404 page must be placed at the end !!!
   { path: '*', redirect: '/404', hidden: true }

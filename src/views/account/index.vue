@@ -31,11 +31,11 @@
           <el-col :span="20" class="account-card">
             <el-card class="box-card">
               <div slot="header" class="clearfix">
-                <span>当前帐号：{{ currentAccount ? currentAccount.name : '' }}</span>
-                <el-button style="padding: 3px 0; margin-left: 8px;" type="text" @click="editAccount(currentAccount)">
+                <span v-if="currentAccount">当前帐号：{{ currentAccount ? currentAccount.name : '' }}</span>
+                <el-button v-if="currentAccount" style="padding: 3px 0; margin-left: 8px;" type="text" @click="editAccount(currentAccount)">
                   <i class="el-icon-edit" />
                 </el-button>
-                <el-button style="padding: 3px 0; color: red" type="text" @click="deleteAccount()">
+                <el-button v-if="currentAccount" style="padding: 3px 0; color: red" type="text" @click="deleteAccount()">
                   <i class="el-icon-delete" />
                 </el-button>
                 <el-button style="float: right; padding: 3px 0; color: grey" type="text">
@@ -125,10 +125,12 @@ export default {
       let tempAccounts = localStorage.getItem(id)
       if (!tempAccounts) {
         tempAccounts = []
+        this.currentAccount = null;
       } else {
         tempAccounts = JSON.parse(tempAccounts)
       }
       this.accounts = tempAccounts
+      if (this.accounts.length) this.currentAccount = this.accounts[0]
     },
     createAccount() {
       this.dialogFormVisible = true
@@ -142,7 +144,11 @@ export default {
       }
     },
     deleteAccount() {
-      if (this.currentAccount) {
+      this.$confirm(`是否确定删除当前API账号?`, '提示', {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }).then(() => {
         this.accounts = this.accounts.filter(item => item.name !== this.currentAccount.name)
         localStorage.setItem(this.currentExchange, JSON.stringify(this.accounts))
         if (this.accounts.length) {
@@ -150,7 +156,7 @@ export default {
         } else {
           this.currentAccount = null;
         }
-      }
+      })
     },
     // 添加账号
     setAccounts(formName) {
@@ -182,6 +188,7 @@ export default {
       }).then(() => {
         localStorage.removeItem(this.currentExchange)
         this.accounts = []
+        this.currentAccount = null;
         this.$message({
           type: 'success',
           message: '清空成功!'
@@ -214,6 +221,7 @@ export default {
     position: absolute;
     width: calc(100% - 60px);
     margin: 30px;
+    min-width: 1440px;
   }
   &-exchanges-logo {
     width: 18px;
@@ -254,6 +262,9 @@ export default {
   margin: 10px;
   color: #7dbcfc;
   cursor: pointer;
+}
+.infinite-list-item:hover {
+  box-shadow: 0 0 8px 0 rgba(232,237,250,.6), 0 2px 4px 0 rgba(232,237,250,.5)
 }
 .account /deep/ .el-card__body {
   height: calc(100% - 100px);

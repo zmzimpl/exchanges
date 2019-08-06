@@ -50,8 +50,15 @@
             </el-form-item>
           </el-form>
         </el-card>
+        <el-row type="flex" justify="center">
+          <el-col :span="16" class="moving-center" style="margin: 24px 0">
+            <el-button round style="width: 40%" @click="addMove()">
+              <i class="el-icon-plus" /> 新建
+            </el-button>
+          </el-col>
+        </el-row>
       </el-col>
-      <el-col :xs="0" :xl="8" :span="8">
+      <el-col :xs="24" :xl="8" :span="8">
         <el-table
           :data="tableData"
           stripe
@@ -73,14 +80,6 @@
           </el-table-column>
         </el-table>
       </el-col>
-    </el-row>
-    <el-row type="flex" justify="center">
-      <el-col :span="16" class="moving-center" style="margin: 24px 0">
-        <el-button round style="width: 40%" @click="addMove()">
-          <i class="el-icon-plus" /> 新建
-        </el-button>
-      </el-col>
-      <el-col :span="8" />
     </el-row>
   </div>
 </template>
@@ -170,7 +169,7 @@ export default {
     this.apiAccounts.forEach(item => {
       item.accounts = this.getAccountsById(item.id);
     })
-  }
+  },
 }
 </script>
 
