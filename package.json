@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "axios": "^0.19.0",
+    "ccxt": "^1.18.1203",
     "element-ui": "2.10.1",
     "js-cookie": "2.2.0",
     "normalize.css": "7.0.0",

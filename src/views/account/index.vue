@@ -73,6 +73,7 @@
                   <i class="el-icon-refresh" />
                   {{ timer }} 秒后自动刷新
                 </el-button>
+                <el-checkbox style="float: right; padding: 3px 0;" v-model="hideZero" @change="isHideZero()">总额为0不显示</el-checkbox>
               </div>
               <div class="text item">
                 <el-card
@@ -86,6 +87,39 @@
                     <span>还没有账号，添加一个吧</span>
                   </div>
                 </el-card>
+
+                <el-table
+                  v-loading="balancesLoading"
+                  v-if="accounts.length"
+                  :data="balances"
+                  :height="innerHeight - 300 + 'px'"
+                  element-loading-text="数据获取中..."
+                  size="small"
+                  border
+                  fit
+                  highlight-current-row
+                >
+                  <el-table-column
+                    prop="coinName"
+                    align="center"
+                    label="币种">
+                  </el-table-column>
+                  <el-table-column
+                    prop="free"
+                    align="center"
+                    label="可用">
+                  </el-table-column>
+                  <el-table-column
+                    prop="used"
+                    align="center"
+                    label="冻结">
+                  </el-table-column>
+                  <el-table-column
+                    prop="total"
+                    align="center"
+                    label="总额">
+                  </el-table-column>
+                </el-table>
               </div>
             </el-card>
           </el-col>
@@ -102,7 +136,7 @@
           <el-input v-model="form.apiKey" autocomplete="off" />
         </el-form-item>
         <el-form-item label="secretKey" :label-width="formLabelWidth" prop="secretKey">
-          <el-input v-model="form.secretKey" autocomplete="off" />
+          <el-input v-model="form.secretKey" autocomplete="off" show-password />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -118,25 +152,35 @@ import { mapGetters } from "vuex";
 import { exchanges } from "@/models/exchanges";
 import { getList } from "../../api/table";
 import { clearInterval } from "timers";
+import { UUID } from "../../utils/uuid";
+
+const ccxt =  require("ccxt")
 
 export default {
   name: "Dashboard",
   data() {
     return {
+      innerHeight: innerHeight,
       exchanges: exchanges,
       currentAccount: null,
-      currentExchange: "coinex",
+      currentExchange: "huobipro",
       accounts: [],
-      timer: 30,
+      allBalances: [],
+      balances: [],
+      balancesLoading: false,
+      hideZero: true,
+      timer: 60,
       timerId: null,
       dialogFormVisible: false,
       form: {
+        id: "",
         name: "",
         apiKey: "",
         secretKey: ""
       },
       formLabelWidth: "120px",
       rules: {
+        id: [{ required: false }],
         name: [{ required: true, message: "请输入Api名称", trigger: "change" }],
         apiKey: [
           { required: true, message: "请输入apiKey", trigger: "change" }
@@ -144,17 +188,18 @@ export default {
         secretKey: [
           { required: true, message: "请输入secretKey", trigger: "change" }
         ]
-      }
+      },
+      ccxt: null,
+      exchange: null
     };
   },
   computed: {
     ...mapGetters(["name"])
   },
-  created() {
+  mounted() {
     this.getAccountsById(this.currentExchange);
-    if (this.accounts.length) {
-      this.currentAccount = this.accounts[0];
-      this.getAccountInfo(this.currentAccount)
+    window.onresize = () => {
+      this.innerHeight = innerHeight
     }
   },
   methods: {
@@ -168,12 +213,61 @@ export default {
         tempAccounts = JSON.parse(tempAccounts);
       }
       this.accounts = tempAccounts;
-      if (this.accounts.length) this.currentAccount = this.accounts[0];
+      if (this.timerId) window.clearInterval(this.timerId)
+      if (this.accounts.length) {
+        this.allBalances = []
+        this.balances = []
+        this.getAccountInfo(this.accounts[0])
+      }
+    },
+    // 根据当前交易所的账号信息获取钱包余额
+    getBalanceByAccountInfo() {
+      if (this.currentAccount) {
+        this.exchange = new ccxt.huobipro({
+          apiKey: this.currentAccount.apiKey, // standard
+          secret: this.currentAccount.secretKey
+        });
+        (async () => {
+          this.balancesLoading = true;
+          this.exchange.fetchBalance().then(rs => {
+            for (const key in rs) {
+              if (rs.hasOwnProperty(key)) {
+                const coin = rs[key];
+                if (coin.hasOwnProperty('free')) {
+                  this.allBalances.push({
+                    coinName: key,
+                    free: coin.free,
+                    used: coin.used,
+                    total: coin.total
+                  })
+                }
+              }
+            }
+            this.balances = this.hideZero ? this.allBalances.filter(f => f.total) : this.allBalances
+            this.balancesLoading = false;
+          }).catch(err => {
+            this.balancesLoading = false;
+            if (err.toString().indexOf('request timed out') > -1) {
+              this.$message({
+                type: "error",
+                message: "请求超时，请检测你的网络"
+              });
+            } else {
+              this.$message({
+                type: "error",
+                message: "获取数据失败，请检测apiKey和secretKey是否正确"
+              });
+            }
+          })
+        })();
+      }
     },
     createAccount() {
-      this.dialogFormVisible = true;
-      this.initForm();
-      this.$refs["rulesForm"].resetFields();
+      this.dialogFormVisible = true
+      this.initForm()
+      setTimeout(() => {
+        this.$refs["rulesForm"].resetFields()
+      }, 0);
     },
     editAccount(account) {
       if (account) {
@@ -196,23 +290,31 @@ export default {
         );
         if (this.accounts.length) {
           this.currentAccount = this.accounts[0];
+          this.reload();
         } else {
           this.currentAccount = null;
         }
       });
     },
-    // 添加账号
+    // 账号管理
     setAccounts(formName) {
       this.$refs[formName].validate(valid => {
         if (valid) {
-          this.accounts = [...this.accounts, { ...this.form }];
+          let isEdit = false;
+          if ((find = this.accounts.find(f => f.id === this.form.id))) {
+            Object.assign(find, this.form);
+            isEdit = true;
+          } else {
+            this.accounts = [...this.accounts, { ...this.form }];
+            isEdit = false;
+          }
           localStorage.setItem(
             this.currentExchange,
             JSON.stringify(this.accounts)
           );
           this.$message({
             type: "success",
-            message: "添加账号成功"
+            message: isEdit ? "修改账号成功" : "添加账号成功"
           });
           this.currentAccount = this.form;
           this.dialogFormVisible = false;
@@ -248,29 +350,37 @@ export default {
           });
         });
     },
+    // 初始化表单
     initForm() {
       this.form = {
+        id: UUID(),
         name: "",
         apiKey: "",
         secretKey: ""
       };
     },
+    // 设置当前账号
     getAccountInfo(account) {
       this.currentAccount = account;
+      this.getBalanceByAccountInfo()
       this.reload();
     },
+    // 刷新钱包
     reload() {
-      console.log(this.timerId);
       if (this.timerId) {
-        window.clearInterval(this.timerId)
-        this.timer = 30;
+        window.clearInterval(this.timerId);
+        this.timer = 60
       }
       this.timerId = setInterval(() => {
-        this.timer--
+        this.timer--;
         if (this.timer === 0) {
-          this.timer = 30
+          this.getBalanceByAccountInfo()
+          this.timer = 60;
         }
-      }, 1000)
+      }, 1000);
+    },
+    isHideZero() {
+      this.hideZero ? this.balances = this.allBalances.filter(f => f.total) : this.balances = this.allBalances
     }
   }
 };
@@ -283,7 +393,6 @@ export default {
     position: absolute;
     width: calc(100% - 60px);
     margin: 30px;
-    min-width: 1440px;
   }
   &-exchanges-logo {
     width: 18px;
