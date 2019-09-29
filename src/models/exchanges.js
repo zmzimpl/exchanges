@@ -25,15 +25,7 @@ export const exchanges = [
     'accounts': []
   },
   {
-    'id': 'mexc',
-    'name': 'MXC',
-    'logo': 'https://s1.bqiapp.com/image/20190308/mexc_webpmid.webp?v=1560386822',
-    'rank': 5,
-    'coins': [],
-    'accounts': []
-  },
-  {
-    'id': 'gate-io',
+    'id': 'gateio',
     'name': 'gate.io',
     'logo': 'https://s1.bqiapp.com/image/20181204/gateio_webpmid.webp',
     'rank': 6,

@@ -223,10 +223,10 @@ export default {
     // 根据当前交易所的账号信息获取钱包余额
     getBalanceByAccountInfo() {
       if (this.currentAccount) {
-        this.exchange = new ccxt.huobipro({
-          apiKey: this.currentAccount.apiKey, // standard
-          secret: this.currentAccount.secretKey
-        });
+        this.exchange = new ccxt[this.currentExchange];
+        this.exchange.apiKey = this.currentAccount.apiKey;
+        this.exchange.secret = this.currentAccount.secretKey;
+        console.log(this.exchange);
         (async () => {
           this.balancesLoading = true;
           this.exchange.fetchBalance().then(rs => {
