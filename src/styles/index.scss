@@ -12,6 +12,18 @@ body {
   font-family: Helvetica Neue, Helvetica, PingFang SC, Hiragino Sans GB, Microsoft YaHei, Arial, sans-serif;
 }
 
+/* 全局滚动条美化 */
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: #d9d9d9;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
 label {
   font-weight: 700;
 }
@@ -62,4 +74,37 @@ div:focus {
 // main-container global css
 .app-container {
   padding: 20px;
+}
+
+.text-primary {
+  color: #409EFF
+}
+
+.text-success {
+  color: #67C23A
+}
+
+.text-danger {
+  color: #F56C6C
+}
+
+.text-warning {
+  color: #E6A23C
+}
+
+.text-info {
+  color: #909399
+}
+
+.text-sm {
+  font-size: 14px
+}
+
+.text-center {
+  text-align: center
+}
+
+
+.display-block {
+  display: block
 }

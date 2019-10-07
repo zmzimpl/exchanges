@@ -2,53 +2,69 @@
   <div class="moving-container">
     <el-row :gutter="24">
       <el-col :xs="24" :xl="16" :span="16">
-        <el-card v-for="(moveForm, moveIndex) in moves" :key="moveIndex" :class="{ 'moving-card' : moveIndex !== 0 }">
+        <el-card v-for="(moveForm, moveIndex) in moves" :key="moveIndex" :ref="'card' + moveIndex" :class="{ 'moving-card' : moveIndex !== 0 }">
           <div slot="header" class="clearfix">
             <div class="moving-center">
-              <span>当前交易对：</span>
-              <span>收益：</span>
+              <span>当前交易对：<span class="text-primary"> {{ moveForm.transaction }} </span> </span>
+              <span>收益：<span class="text-success"> {{ moveForm.profit + '%' }} </span> </span>
             </div>
           </div>
-          <el-form :ref="moveIndex" :model="moveForm" label-width="100px" class="moving-form">
-            <el-form-item
-              prop="currency"
-              label="交易对"
-              :rules="[
-                { required: true, message: '请选择交易对', trigger: 'change' }
-              ]"
-            >
-              <el-select v-model="moveForm.currency" placeholder="请选择交易对" class="moving-select">
-                <el-option
-                  v-for="item in options"
-                  :key="item.value"
-                  :label="item.label"
-                  :value="item.value"
-                />
-              </el-select>
-            </el-form-item>
-            <el-form-item
-              v-for="(account, index) in moveForm.accounts"
-              :key="account.key"
-              :label="'API账号' + index"
-              :prop="'accounts.' + index + '.value'"
-              :rules="{
-                required: true, message: 'API账号不能为空', trigger: 'blur'
-              }"
-            >
-              <el-cascader
-                v-model="account.value"
-                :props="{'value': 'id', 'label': 'name', 'children': 'accounts'}"
-                :options="apiAccounts"
-                @change="accountChecked"
-                class="moving-select" />
-              <el-button @click.prevent="removeAccount(moveForm, account)">移除</el-button>
-            </el-form-item>
-            <el-form-item class="moving-center">
-              <el-button type="primary" @click="submitForm('moveForm')">开始</el-button>
-              <el-button @click="addAccount(moveForm)">新增API账号</el-button>
-              <el-button type="danger" v-if="moves.length > 1" @click="removeForm(moveIndex)">删除</el-button>
-            </el-form-item>
-          </el-form>
+          <el-col :xs="16" :xl="16" :span="16">
+            <el-form :ref="moveIndex" :model="moveForm" label-width="100px" class="moving-form">
+              <el-form-item
+                prop="transaction"
+                label="交易对"
+                :rules="[
+                  { required: true, message: '请选择交易对', trigger: 'change' }
+                ]"
+              >
+                <el-select v-model="moveForm.transaction" placeholder="请选择交易对" class="moving-select">
+                  <el-option
+                    v-for="item in transactions"
+                    :key="item"
+                    :label="item"
+                    :value="item"
+                  />
+                </el-select>
+              </el-form-item>
+              <el-form-item
+                v-for="(account, index) in moveForm.accounts"
+                :key="account.key"
+                :label="'API账号' + index"
+                :prop="'accounts.' + index + '.value'"
+                :rules="{
+                  required: true, message: 'API账号不能为空', trigger: 'blur'
+                }"
+              >
+                <el-cascader
+                  v-model="account.value"
+                  :props="{'value': 'id', 'label': 'name', 'children': 'accounts'}"
+                  :options="apiAccounts"
+                  @change="accountChecked"
+                  class="moving-select" />
+                <el-button @click.prevent="removeAccount(moveForm, account)">移除</el-button>
+              </el-form-item>
+              <el-form-item class="moving-center">
+                <el-button type="primary" @click="startMove(moveIndex, moveForm)">{{ !moveForm.isStarted ? '开始' : '暂停' }}</el-button>
+                <el-button @click="addAccount(moveForm)">新增API账号</el-button>
+                <el-button type="danger" v-if="moves.length > 1" @click="removeForm(moveIndex)">删除</el-button>
+              </el-form-item>
+            </el-form>
+          </el-col>
+          <el-col :xs="8" :xl="8" :span="8">
+            <el-card :body-style="{ overflow: 'auto', height: moveForm.accounts.length > 2 ? (moveForm.accounts.length * 60) + 'px' : '120px' }">
+              <div slot="header" class="clearfix">
+                <div class="moving-center">
+                  <span class="text-primary">日志</span>
+                </div>
+              </div>
+              <div class="text-center">
+                <div v-if="!moveForm.logs.length" class="text-info text-sm"> 暂无 </div>
+                <div v-for="(log, i) in moveForm.logs" :key="i" class="text-sm" :style="{color: log.color}"> {{ log.msg }} </div>
+              </div>
+            </el-card>
+          </el-col>
+          <div style="clear: both"></div>
         </el-card>
         <el-row type="flex" justify="center">
           <el-col :span="16" class="moving-center" style="margin: 24px 0">
@@ -87,18 +103,29 @@
 <script>
 
 import { exchanges } from '@/models/exchanges'
+import { async } from 'q'
+
+const ccxt = require ('ccxt')
 
 export default {
   data() {
     return {
-      options: [],
+      transactions: window.customConfig.transactions,
       apiAccounts: exchanges,
       moves: [{
         accounts: [{
           key: Date.now(),
           value: []
+        },{
+          key: Date.now() + 100,
+          value: []
         }],
-        currency: ''
+        transaction: '',
+        profit: 0,
+        logs: [],
+        isStarted: false,
+        timerId: null,
+        count: 0
       }],
       tableData: [{
         date: '2019-05-02',
@@ -112,14 +139,28 @@ export default {
     }
   },
   methods: {
-    submitForm(formName) {
-      this.$refs[formName].validate((valid) => {
-        if (valid) {
-          alert('submit!')
-        } else {
-          console.log('error submit!!')
-          return false
-        }
+    startMove(formName, model) {
+      model.isStarted = !model.isStarted;
+      if (model.isStarted) {
+        model.timerId = setInterval(() => {
+          model.logs.push({msg: '第' + ++model.count + '次请求...', color: 'blue'})
+          this.autoMove(model)
+        }, 5000)
+      } else {
+        window.clearInterval(model.timerId)
+      }
+    },
+    autoMove(model) {
+      model.accounts.forEach(item => {
+        const account = this.getAccountsById(item.value[0]).find(f => f.id === item.value[1])
+        if (!model[item.value[0]]) {
+          model[item.value[0]] = new ccxt[item.value[0]]({...account, enableRateLimit: true, 'options': { 'adjustForTimeDifference': true }})
+        };
+        (async () => {
+          model[item.value[0]].fetchTicker(model.transaction).then(rs => {
+            model.logs.push({msg: item.value[0] + '： 买一：' + rs.bid + '; 卖一：' + rs.ask, color: this.randomColor()})
+          })
+        })();
       })
     },
     removeForm(moveIndex) {
@@ -143,33 +184,48 @@ export default {
           key: Date.now(),
           value: []
         }],
-        currency: ''
+        transaction: '',
+        profit: 0,
+        logs: [],
+        isStarted: false,
+        timerId: null,
+        count: 0
       })
     },
     // 根据交易所ID获取已添加的账号信息
-    getAccountsById(id) {
-      console.log(id)
+    getAccountsById(id, isMap) {
         let tempAccounts = localStorage.getItem(id)
         if (!tempAccounts) {
           tempAccounts = []
         } else {
-          tempAccounts = JSON.parse(tempAccounts).map(item => {
-            item.id = item.apiKey
-            return item
-          })
+          if (isMap) {
+            tempAccounts = JSON.parse(tempAccounts).map((item, index) => {
+              item.id = item.id
+              return item
+            })
+          } else {
+            tempAccounts = JSON.parse(tempAccounts)
+          }
         }
-        console.log(tempAccounts)
         return tempAccounts
     },
     accountChecked(checked) {
-      console.log(checked)
+      // console.log(checked)
+    },
+    randomColor() {
+     this.r = Math.floor(Math.random()*255);
+     this.g = Math.floor(Math.random()*255);
+     this.b = Math.floor(Math.random()*255);
+     return 'rgba('+ this.r +','+ this.g +','+ this.b +',0.8)';
     }
   },
   created() {
     this.apiAccounts.forEach(item => {
-      item.accounts = this.getAccountsById(item.id);
+      item.accounts = this.getAccountsById(item.id, true);
     })
   },
+  mounted() {
+  }
 }
 </script>
 
@@ -179,7 +235,7 @@ export default {
     margin: 30px;
   }
   &-form {
-    width: 80%;
+    width: 100%;
   }
   &-grid-content {
     padding: 24px;

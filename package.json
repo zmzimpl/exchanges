@@ -16,8 +16,10 @@
   },
   "dependencies": {
     "axios": "^0.19.0",
-    "ccxt": "^1.18.1203",
+    "ccxt": "^1.18.1222",
+    "cors-anywhere": "^0.4.1",
     "element-ui": "2.10.1",
+    "https-proxy-agent": "^2.2.2",
     "js-cookie": "2.2.0",
     "normalize.css": "7.0.0",
     "nprogress": "0.2.0",

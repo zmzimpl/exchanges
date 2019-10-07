@@ -73,7 +73,7 @@
                   <i class="el-icon-refresh" />
                   {{ timer }} 秒后自动刷新
                 </el-button>
-                <el-checkbox style="float: right; padding: 3px 0;" v-model="hideZero" @change="isHideZero()">总额为0不显示</el-checkbox>
+                <el-checkbox style="float: right; padding: 3px 0;" v-model="hideZero" @change="isHideZero()">不显示小额币种</el-checkbox>
               </div>
               <div class="text item">
                 <el-card
@@ -119,6 +119,11 @@
                     align="center"
                     label="总额">
                   </el-table-column>
+                  <el-table-column
+                    prop="value"
+                    align="center"
+                    label="价值(USDT)">
+                  </el-table-column>
                 </el-table>
               </div>
             </el-card>
@@ -138,6 +143,9 @@
         <el-form-item label="secretKey" :label-width="formLabelWidth" prop="secretKey">
           <el-input v-model="form.secretKey" autocomplete="off" show-password />
         </el-form-item>
+        <el-form-item label="password" :label-width="formLabelWidth" prop="password">
+          <el-input v-model="form.password" autocomplete="off" show-password />
+        </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
         <el-button @click="dialogFormVisible = false">取 消</el-button>
@@ -154,7 +162,7 @@ import { getList } from "../../api/table";
 import { clearInterval } from "timers";
 import { UUID } from "../../utils/uuid";
 
-const ccxt =  require("ccxt")
+const ccxt = require ('ccxt')
 
 export default {
   name: "Dashboard",
@@ -187,6 +195,9 @@ export default {
         ],
         secretKey: [
           { required: true, message: "请输入secretKey", trigger: "change" }
+        ],
+        password: [
+          { required: false, message: "部分交易所如OKEx的API需要支付密码", trigger: "change" }
         ]
       },
       ccxt: null,
@@ -201,6 +212,9 @@ export default {
     window.onresize = () => {
       this.innerHeight = innerHeight
     }
+  },
+  destroyed() {
+    if (this.timerId) window.clearInterval(this.timerId)
   },
   methods: {
     // 根据交易所ID获取已添加的账号信息
@@ -223,29 +237,36 @@ export default {
     // 根据当前交易所的账号信息获取钱包余额
     getBalanceByAccountInfo() {
       if (this.currentAccount) {
-        this.exchange = new ccxt[this.currentExchange];
+        this.exchange = new ccxt[this.currentExchange]({enableRateLimit: true, 'options': { 'adjustForTimeDifference': true }});
         this.exchange.apiKey = this.currentAccount.apiKey;
         this.exchange.secret = this.currentAccount.secretKey;
-        console.log(this.exchange);
+        this.exchange.password = this.currentAccount.password ? this.currentAccount.password : undefined;
         (async () => {
           this.balancesLoading = true;
+          this.allBalances = [];
+          this.balances = [];
           this.exchange.fetchBalance().then(rs => {
-            for (const key in rs) {
-              if (rs.hasOwnProperty(key)) {
-                const coin = rs[key];
-                if (coin.hasOwnProperty('free')) {
-                  this.allBalances.push({
-                    coinName: key,
-                    free: coin.free,
-                    used: coin.used,
-                    total: coin.total
-                  })
+            this.exchange.fetchTickers().then(tickers => {
+              for (const key in rs) {
+                if (rs.hasOwnProperty(key)) {
+                  const coin = rs[key];
+                  if (coin.hasOwnProperty('free')) {
+                    this.allBalances.push({
+                      coinName: key,
+                      free: coin.free,
+                      used: coin.used,
+                      total: coin.total,
+                      value: tickers[key + '/USDT'] ? tickers[key + '/USDT'].last * coin.total : ''
+                    })
+                  }
                 }
               }
-            }
-            this.balances = this.hideZero ? this.allBalances.filter(f => f.total) : this.allBalances
-            this.balancesLoading = false;
+              this.balances = this.hideZero ? this.allBalances.filter(f => f.value > 1) : this.allBalances
+              this.balancesLoading = false;
+            })
           }).catch(err => {
+            this.allBalances = []
+            this.balances = []
             this.balancesLoading = false;
             if (err.toString().indexOf('request timed out') > -1) {
               this.$message({
@@ -255,7 +276,7 @@ export default {
             } else {
               this.$message({
                 type: "error",
-                message: "获取数据失败，请检测apiKey和secretKey是否正确"
+                message: err.toString()
               });
             }
           })

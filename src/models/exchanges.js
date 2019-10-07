@@ -9,18 +9,10 @@ export const exchanges = [
     'api': 'https://api.huobi.pro/v1'
   },
   {
-    'id': 'okex',
+    'id': 'okex3',
     'name': 'OKEX',
     'logo': 'https://s1.bqiapp.com/image/20181115/okex_webpmid.webp',
     'rank': 3,
-    'coins': [],
-    'accounts': []
-  },
-  {
-    'id': 'binance',
-    'name': '币安网',
-    'logo': 'https://s1.bqiapp.com/image/20181207/binance_webpmid.webp?v=1561966976',
-    'rank': 1,
     'coins': [],
     'accounts': []
   },
@@ -33,34 +25,10 @@ export const exchanges = [
     'accounts': []
   },
   {
-    'id': 'zb',
-    'name': 'ZB网',
-    'logo': 'https://s1.bqiapp.com/image/20190222/zb_webpmid.webp',
-    'rank': 4,
-    'coins': [],
-    'accounts': []
-  },
-  {
-    'id': 'bikicoin',
-    'name': 'BiKi',
-    'logo': 'https://s1.bqiapp.com/image/20190228/bikicoin_webpmid.webp',
-    'rank': 7,
-    'coins': [],
-    'accounts': []
-  },
-  {
-    'id': 'zgcom',
-    'name': 'ZG.com',
-    'logo': 'https://s1.bqiapp.com/image/20190326/zgcom_webpmid.webp',
-    'rank': 8,
-    'coins': [],
-    'accounts': []
-  },
-  {
-    'id': 'coinex',
-    'name': 'CoinEx',
-    'logo': 'https://s1.bqiapp.com/image/20181126/coinex_mid.png',
-    'rank': 0,
+    'id': 'binance',
+    'name': '币安网',
+    'logo': 'https://s1.bqiapp.com/image/20181207/binance_webpmid.webp?v=1561966976',
+    'rank': 1,
     'coins': [],
     'accounts': []
   }

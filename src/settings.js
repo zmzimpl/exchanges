@@ -1,6 +1,6 @@
 module.exports = {
 
-  title: '量化交易机器人',
+  title: '搬砖工具',
 
   /**
    * @type {boolean} true | false

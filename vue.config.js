@@ -5,7 +5,6 @@ const defaultSettings = require('./src/settings.js')
 function resolve(dir) {
   return path.join(__dirname, dir)
 }
-
 const name = defaultSettings.title || 'exchanges' // page title
 
 // If your port is set to 80,
@@ -32,23 +31,20 @@ module.exports = {
   devServer: {
     port: port,
     open: true,
-    https: true,
     overlay: {
       warnings: false,
       errors: true
     },
     proxy: {
-      // change xxx-api/login => mock/login
-      // detail: https://cli.vuejs.org/config/#devserver-proxy
-      [process.env.VUE_APP_BASE_API]: {
-        target: `https://127.0.0.1:${port}/mock`,
-        changeOrigin: true,
-        pathRewrite: {
-          ['^' + process.env.VUE_APP_BASE_API]: ''
+      '/exchanges-api': {
+        target: 'http://localhost:8080',
+        secure: false, // 如果是https接口，需要配置这个参数
+        changeOrigin: true, // 如果接口跨域，需要进行这个参数配置
+        bypass: function(req, res, proxyOptions) {
+          return req.url.split('/exchanges-api/')[1]
         }
       }
-    },
-    after: require('./mock/mock-server.js')
+    }
   },
   configureWebpack: {
     // provide the app's title in webpack's name field, so that
