@@ -9,7 +9,7 @@
               <span>收益：<span class="text-success"> {{ moveForm.profit + '%' }} </span> </span>
             </div>
           </div>
-          <el-col :xs="16" :xl="16" :span="16">
+          <el-col :xs="14" :xl="14" :span="14">
             <el-form :ref="moveIndex" :model="moveForm" label-width="100px" class="moving-form">
               <el-form-item
                 prop="transaction"
@@ -45,14 +45,14 @@
                 <el-button @click.prevent="removeAccount(moveForm, account)">移除</el-button>
               </el-form-item>
               <el-form-item class="moving-center">
-                <el-button type="primary" @click="startMove(moveIndex, moveForm)">{{ !moveForm.isStarted ? '开始' : '暂停' }}</el-button>
+                <el-button type="primary" @click="startMove(moveIndex, moveForm, 'log' + moveIndex)">{{ !moveForm.isStarted ? '开始' : '暂停' }}</el-button>
                 <el-button @click="addAccount(moveForm)">新增API账号</el-button>
                 <el-button type="danger" v-if="moves.length > 1" @click="removeForm(moveIndex)">删除</el-button>
               </el-form-item>
             </el-form>
           </el-col>
-          <el-col :xs="8" :xl="8" :span="8">
-            <el-card :body-style="{ overflow: 'auto', height: moveForm.accounts.length > 2 ? (moveForm.accounts.length * 60) + 'px' : '120px' }">
+          <el-col :xs="10" :xl="10" :span="10">
+            <el-card :ref="'log' + moveIndex" :body-style="{ overflow: 'auto', height: moveForm.accounts.length > 2 ? (moveForm.accounts.length * 60) + 'px' : '120px' }">
               <div slot="header" class="clearfix">
                 <div class="moving-center">
                   <span class="text-primary">日志</span>
@@ -83,12 +83,17 @@
           <el-table-column
             prop="date"
             label="时间"
-            width="180">
+            width="140">
+          </el-table-column>
+          <el-table-column
+            prop="transaction"
+            label="交易对"
+            width="100">
           </el-table-column>
           <el-table-column
             prop="exchange"
             label="交易所"
-            width="180">
+            width="200">
           </el-table-column>
           <el-table-column
             prop="profit"
@@ -125,43 +130,86 @@ export default {
         logs: [],
         isStarted: false,
         timerId: null,
-        count: 0
+        count: 0,
+        maxBuy: null,
+        minSell: null,
       }],
-      tableData: [{
-        date: '2019-05-02',
-        exchange: '币安',
-        profit: '0.5%'
-      }, {
-        date: '2019-05-04',
-        exchange: '火币Pro',
-        profit: '0.3%'
-      }]
+      tableData: []
     }
   },
   methods: {
-    startMove(formName, model) {
-      model.isStarted = !model.isStarted;
-      if (model.isStarted) {
-        model.timerId = setInterval(() => {
-          model.logs.push({msg: '第' + ++model.count + '次请求...', color: 'blue'})
-          this.autoMove(model)
-        }, 5000)
-      } else {
-        window.clearInterval(model.timerId)
+    startMove(formName, model, logRef) {
+      if (model.transaction && model.accounts.every(item => item.value)) {
+        // scrollIntoView
+        const ref = this.$refs[logRef][0].$el.childNodes[1]
+        model.isStarted = !model.isStarted;
+        if (model.isStarted) {
+          this.autoMove(model, ref);
+        } else {
+          window.clearTimeout(model.timerId)
+        }
       }
     },
-    autoMove(model) {
-      model.accounts.forEach(item => {
-        const account = this.getAccountsById(item.value[0]).find(f => f.id === item.value[1])
-        if (!model[item.value[0]]) {
-          model[item.value[0]] = new ccxt[item.value[0]]({...account, enableRateLimit: true, 'options': { 'adjustForTimeDifference': true }})
-        };
-        (async () => {
-          model[item.value[0]].fetchTicker(model.transaction).then(rs => {
-            model.logs.push({msg: item.value[0] + '： 买一：' + rs.bid + '; 卖一：' + rs.ask, color: this.randomColor()})
-          })
-        })();
-      })
+    autoMove(model, logRef) {
+      model.timerId = setTimeout(() => {
+        model.logs.push({msg: '-', color: 'blue'})
+        model.logs.push({msg: '第' + ++model.count + '次请求...', color: 'blue'})
+        model.maxBuy = null;
+        model.minSell = null;
+        model.accounts.forEach((item, index) => {
+          const account = this.getAccountsById(item.value[0]).find(f => f.id === item.value[1])
+          if (!model[item.value[0]]) {
+            model[item.value[0]] = new ccxt[item.value[0]]({...account, enableRateLimit: true, 'options': { 'adjustForTimeDifference': true }})
+          };
+        });
+        this.asyncFun(model, 0, logRef)
+      }, model.count === 0 ? 0 : 3000);
+    },
+    asyncFun(model, index, logRef) {
+      const item = model.accounts[index];
+      (async () => {
+        model[item.value[0]].fetchTicker(model.transaction).then(rs => {
+          if (model.logs.length > 200) model.logs = [];
+          model.logs.push({msg: item.value[0] + '： 买一：' + rs.bid + '; 卖一：' + rs.ask, color: this.randomColor()})
+          if (model.maxBuy) {
+            if (rs.bid > model.maxBuy.size) model.maxBuy = { name: item.value[0], size: rs.bid }
+          } else {
+            model.maxBuy = { name: item.value[0], size: rs.bid }
+          }
+          if (model.minSell) {
+            if (rs.ask < model.minSell.size) model.minSell = { name: item.value[0], size: rs.ask }
+          } else {
+            model.minSell = { name: item.value[0], size: rs.ask }
+          }
+          if (index === (model.accounts.length - 1)) {
+            this.autoMove(model, logRef);
+            model.logs.push({msg: ' ', color: this.randomColor()})
+            model.logs.push({msg: '最大买单：' + model.maxBuy.name + '：' + model.maxBuy.size, color: this.randomColor()})
+            model.logs.push({msg: '最小卖单：' +　model.minSell.name + '：' + model.minSell.size, color: this.randomColor()})
+            model.logs.push({msg: '差价' + ((model.maxBuy.size - model.minSell.size).toFixed(2) + 'U'), color: this.randomColor()})
+            model.logs.push({msg: '成交利润：' + ((model.maxBuy.size - model.minSell.size)/model.minSell.size *　100).toFixed(2) + '%' , color: this.randomColor()})
+            model.logs.push({msg: ' ', color: this.randomColor()})
+            if (+(((model.maxBuy.size - model.minSell.size)/model.minSell.size *　100).toFixed(2)) > 0.35) {
+              const date = new Date();
+              this.tableData = [...this.tableData, {
+                date: date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes(),
+                exchange: model.maxBuy.name + '卖出， ' + model.minSell.name + '买入',
+                profit: ((model.maxBuy.size - model.minSell.size)/model.minSell.size *　100).toFixed(2),
+                transaction: model.transaction
+              }]
+              localStorage.setItem('profitData', JSON.stringify(this.tableData))
+            }
+          } else {
+            if (logRef.scrollHeight > logRef.clientHeight) {
+              logRef.scrollTo(0, logRef.scrollHeight + 240);
+            }
+            this.asyncFun(model, index + 1, logRef)
+          }
+        }).catch(reason => {
+          model.logs.push({msg: '请求失败，重新尝试...', color: 'red'})
+          this.autoMove(model, logRef);
+        })
+      })();
     },
     removeForm(moveIndex) {
       this.moves.splice(moveIndex, 1)
@@ -183,13 +231,18 @@ export default {
         accounts: [{
           key: Date.now(),
           value: []
+        },{
+          key: Date.now() + 100,
+          value: []
         }],
         transaction: '',
         profit: 0,
         logs: [],
         isStarted: false,
         timerId: null,
-        count: 0
+        count: 0,
+        maxBuy: null,
+        minSell: null,
       })
     },
     // 根据交易所ID获取已添加的账号信息
@@ -225,6 +278,8 @@ export default {
     })
   },
   mounted() {
+    const temp = localStorage.getItem('profitData')
+    temp ? this.tableData = JSON.parse(temp) : this.tableData = [];
   }
 }
 </script>
