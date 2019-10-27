@@ -86,21 +86,16 @@
           :data="tableData"
           stripe
           border
+          height="500"
           style="width: 100%">
-          <el-table-column
-            prop="date"
-            label="时间"
-            width="140">
-          </el-table-column>
           <el-table-column
             prop="transaction"
             label="交易对"
             width="100">
           </el-table-column>
           <el-table-column
-            prop="exchange"
-            label="交易所"
-            width="200">
+            prop="profit"
+            label="盈利(%)">
           </el-table-column>
           <el-table-column
             prop="amount"
@@ -108,8 +103,14 @@
             width="200">
           </el-table-column>
           <el-table-column
-            prop="profit"
-            label="盈利">
+            prop="exchange"
+            label="交易所"
+            width="200">
+          </el-table-column>
+          <el-table-column
+            prop="date"
+            label="时间"
+            width="140">
           </el-table-column>
         </el-table>
       </el-col>
