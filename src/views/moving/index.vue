@@ -1,5 +1,12 @@
 <template>
   <div class="moving-container">
+    <div>
+      <el-form :model="config">
+        <el-form-item label="搬砖利润率(%)" :label-width="'120px'" prop="minProfix">
+          <el-input-number v-model="config.minProfix" :precision="1" :step="0.1" :max="100"></el-input-number>
+        </el-form-item>
+      </el-form>
+    </div>
     <el-row :gutter="24">
       <el-col :xs="24" :xl="16" :span="16">
         <el-card v-for="(moveForm, moveIndex) in moves" :key="moveIndex" :ref="'card' + moveIndex" :class="{ 'moving-card' : moveIndex !== 0 }">
@@ -96,6 +103,11 @@
             width="200">
           </el-table-column>
           <el-table-column
+            prop="amount"
+            label="交易数量"
+            width="200">
+          </el-table-column>
+          <el-table-column
             prop="profit"
             label="盈利">
           </el-table-column>
@@ -115,6 +127,9 @@ const ccxt = require ('ccxt')
 export default {
   data() {
     return {
+      config: {
+        minProfix: 0.7
+      },
       transactions: window.customConfig.transactions,
       apiAccounts: exchanges,
       moves: [{
@@ -168,36 +183,38 @@ export default {
     asyncFun(model, index, logRef) {
       const item = model.accounts[index];
       (async () => {
-        model[item.value[0]].fetchTicker(model.transaction).then(rs => {
+        let params = null;
+        if (item.value[0] === 'huobipro') {
+          params = { depth: 10, type: 'step2' };
+        } else if (item.value[0] === 'okex3') {
+          params = { depth: 1 }
+        } else if (item.value[0] === 'gateio') {
+          params = { decimal_places: 0, int: 10 };
+        }
+        model[item.value[0]].fetchOrderBook(model.transaction, 10, params).then(rs => {
           if (model.logs.length > 200) model.logs = [];
-          model.logs.push({msg: item.value[0] + '： 买一：' + rs.bid + '; 卖一：' + rs.ask, color: this.randomColor()})
+          model.logs.push({msg: item.value[0] + '： 买一：' + rs.bids[0][0] + '; 数量' + rs.bids[0][1], color: this.randomColor()})
+          model.logs.push({msg: item.value[0] + '： 卖一：' + rs.asks[0][0] + '; 数量' + rs.asks[0][1], color: this.randomColor()})
           if (model.maxBuy) {
-            if (rs.bid > model.maxBuy.size) model.maxBuy = { name: item.value[0], size: rs.bid }
+            if (rs.bids[0][0] > model.maxBuy.size) model.maxBuy = { name: item.value[0], size: rs.bids[0][0], volume: rs.bids[0][1] }
           } else {
-            model.maxBuy = { name: item.value[0], size: rs.bid }
+            model.maxBuy = { name: item.value[0], size: rs.bids[0][0], volume: rs.bids[0][1] }
           }
           if (model.minSell) {
-            if (rs.ask < model.minSell.size) model.minSell = { name: item.value[0], size: rs.ask }
+            if (rs.asks[0][0] < model.minSell.size) model.minSell = { name: item.value[0], size: rs.asks[0][0], volume: rs.asks[0][1] }
           } else {
-            model.minSell = { name: item.value[0], size: rs.ask }
+            model.minSell = { name: item.value[0], size: rs.asks[0][0], volume: rs.asks[0][1] }
           }
           if (index === (model.accounts.length - 1)) {
             this.autoMove(model, logRef);
             model.logs.push({msg: ' ', color: this.randomColor()})
-            model.logs.push({msg: '最大买单：' + model.maxBuy.name + '：' + model.maxBuy.size, color: this.randomColor()})
-            model.logs.push({msg: '最小卖单：' +　model.minSell.name + '：' + model.minSell.size, color: this.randomColor()})
+            model.logs.push({msg: '最大买单：' + model.maxBuy.name + '：' + model.maxBuy.size + `(${model.maxBuy.volume})`, color: this.randomColor()})
+            model.logs.push({msg: '最小卖单：' +　model.minSell.name + '：' + model.minSell.size + `(${model.minSell.volume})`, color: this.randomColor()})
             model.logs.push({msg: '差价' + ((model.maxBuy.size - model.minSell.size).toFixed(2) + 'U'), color: this.randomColor()})
             model.logs.push({msg: '成交利润：' + ((model.maxBuy.size - model.minSell.size)/model.minSell.size *　100).toFixed(2) + '%' , color: this.randomColor()})
             model.logs.push({msg: ' ', color: this.randomColor()})
-            if (+(((model.maxBuy.size - model.minSell.size)/model.minSell.size *　100).toFixed(2)) > 0.35) {
-              const date = new Date();
-              this.tableData = [...this.tableData, {
-                date: date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes(),
-                exchange: model.maxBuy.name + '卖出， ' + model.minSell.name + '买入',
-                profit: ((model.maxBuy.size - model.minSell.size)/model.minSell.size *　100).toFixed(2),
-                transaction: model.transaction
-              }]
-              localStorage.setItem('profitData', JSON.stringify(this.tableData))
+            if (+(((model.maxBuy.size - model.minSell.size)/model.minSell.size *　100).toFixed(2)) > this.config.minProfix) {
+              this.saveProfitLog(model);
             }
           } else {
             if (logRef.scrollHeight > logRef.clientHeight) {
@@ -210,6 +227,18 @@ export default {
           this.autoMove(model, logRef);
         })
       })();
+    },
+    saveProfitLog(model) {  // 本地保存搬砖记录
+      const date = new Date();
+      const amount = model.maxBuy.volume > model.minSell.volume ? model.minSell.volume : model.maxBuy.volume;
+      this.tableData = [...this.tableData, {
+        date: date.getFullYear() + '-' + (date.getMonth() + 1) + '-' + date.getDate() + ' ' + date.getHours() + ':' + date.getMinutes(),
+        exchange: model.maxBuy.name + '卖出， ' + model.minSell.name + '买入',
+        profit: ((model.maxBuy.size - model.minSell.size)/model.minSell.size *　100).toFixed(2),
+        amount: amount,
+        transaction: model.transaction
+      }]
+      localStorage.setItem('profitData', JSON.stringify(this.tableData))
     },
     removeForm(moveIndex) {
       this.moves.splice(moveIndex, 1)

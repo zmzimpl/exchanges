@@ -143,8 +143,8 @@
         <el-form-item label="secretKey" :label-width="formLabelWidth" prop="secretKey">
           <el-input v-model="form.secretKey" autocomplete="off" show-password />
         </el-form-item>
-        <el-form-item label="password" :label-width="formLabelWidth" prop="password">
-          <el-input v-model="form.password" autocomplete="off" show-password />
+        <el-form-item label="交易密码" :label-width="formLabelWidth" prop="validatePassword">
+          <el-input v-model="form.validatePassword" autocomplete="off" show-password />
         </el-form-item>
       </el-form>
       <div slot="footer" class="dialog-footer">
@@ -184,7 +184,8 @@ export default {
         id: "",
         name: "",
         apiKey: "",
-        secretKey: ""
+        secretKey: "",
+        validatePassword: ""
       },
       formLabelWidth: "120px",
       rules: {
@@ -196,7 +197,7 @@ export default {
         secretKey: [
           { required: true, message: "请输入secretKey", trigger: "change" }
         ],
-        password: [
+        validatePassword: [
           { required: false, message: "部分交易所如OKEx的API需要支付密码", trigger: "change" }
         ]
       },
@@ -240,7 +241,7 @@ export default {
         this.exchange = new ccxt[this.currentExchange]({enableRateLimit: true, 'options': { 'adjustForTimeDifference': true }});
         this.exchange.apiKey = this.currentAccount.apiKey;
         this.exchange.secret = this.currentAccount.secretKey;
-        this.exchange.password = this.currentAccount.password ? this.currentAccount.password : undefined;
+        this.exchange.password = this.currentAccount.validatePassword ? this.currentAccount.validatePassword : undefined;
         (async () => {
           this.balancesLoading = true;
           this.allBalances = [];
@@ -338,6 +339,7 @@ export default {
             message: isEdit ? "修改账号成功" : "添加账号成功"
           });
           this.currentAccount = this.form;
+          this.getBalanceByAccountInfo();
           this.dialogFormVisible = false;
         } else {
           this.$message({
@@ -377,7 +379,8 @@ export default {
         id: UUID(),
         name: "",
         apiKey: "",
-        secretKey: ""
+        secretKey: "",
+        validatePassword: ""
       };
     },
     // 设置当前账号
