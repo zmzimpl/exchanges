@@ -162,8 +162,20 @@ export default {
         if (model.isStarted) {
           this.autoMove(model, ref);
         } else {
-          window.clearTimeout(model.timerId)
+          this.clearTimer(model.timerId)
         }
+      }
+    },
+    clearTimer(timerId) {
+      if (timerId) {
+        window.clearTimeout(timerId)
+      } else {
+        console.log(this.moves);
+        this.moves.forEach(item => {
+          if (item.timerId) {
+            window.clearTimeout(item.timerId)
+          }
+        })
       }
     },
     autoMove(model, logRef) {
@@ -283,7 +295,6 @@ export default {
         } else {
           if (isMap) {
             tempAccounts = JSON.parse(tempAccounts).map((item, index) => {
-              item.id = item.id
               return item
             })
           } else {
@@ -310,6 +321,9 @@ export default {
   mounted() {
     const temp = localStorage.getItem('profitData')
     temp ? this.tableData = JSON.parse(temp) : this.tableData = [];
+  },
+  beforeDestroy() {
+    this.clearTimer();
   }
 }
 </script>

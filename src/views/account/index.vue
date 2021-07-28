@@ -237,7 +237,7 @@ export default {
         this.exchange.password = this.currentAccount.validatePassword ? this.currentAccount.validatePassword : undefined;
         const _currentExchange = this.currentExchange;
         if (this.currentExchange === 'binance') {
-          // this.exchange.proxy = 'http://localhost:4000/api/post/';
+          // this.exchange.proxy = 'http://localhost:9529/';
         }
         (async () => {
           this.balancesLoading = true;
@@ -287,8 +287,8 @@ export default {
     },
     createAccount() {
       this.dialogFormVisible = true
-      this.initForm()
       setTimeout(() => {
+        this.initForm()
         this.$refs["rulesForm"].resetFields()
       }, 0);
     },
