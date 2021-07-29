@@ -129,7 +129,7 @@ export default {
   data() {
     return {
       config: {
-        minProfix: 0.7
+        minProfix: 0.1
       },
       transactions: customConfig.transactions,
       apiAccounts: getExchanges(),
